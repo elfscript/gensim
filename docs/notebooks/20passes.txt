@@ -1,0 +1,115 @@
+root@8d967b0c03f0:/mnt/work# [Kroot@8d967b0c03f0:/mnt/work# cd docs
+root@8d967b0c03f0:/mnt/work/docs# cd note*
+root@8d967b0c03f0:/mnt/work/docs/notebooks# ls *.py
+doc2vec-imdb.py  doc2vec-imdb2.py  test_notebooks.py
+root@8d967b0c03f0:/mnt/work/docs/notebooks# python doc2vec-imdb2.py
+100000 docs: 25000 train-sentiment, 25000 test-sentiment
+('number of cores', 2)
+Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)
+Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)
+Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)
+/usr/local/lib/python2.7/site-packages/statsmodels/compat/pandas.py:56: FutureWarning: The pandas.core.datetools module is deprecated and will be removed in a future version. Please use the pandas.tseries module instead.
+  from pandas.core import datetools
+START 2017-05-12 07:00:41.632703
+*0.246960 : 1 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 296.7s 0.6s
+*0.244800 : 1 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)_inferred 296.7s 6.7s
+*0.114600 : 1 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 101.8s 0.6s
+*0.112000 : 1 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)_inferred 101.8s 2.8s
+*0.175320 : 1 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 140.9s 0.6s
+*0.206400 : 1 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)_inferred 140.9s 3.5s
+completed pass 1 at alpha 0.025000
+*0.184080 : 2 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 280.2s 0.6s
+*0.105440 : 2 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 98.5s 1.0s
+*0.157800 : 2 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 136.1s 0.6s
+completed pass 2 at alpha 0.023800
+*0.165680 : 3 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 270.4s 0.6s
+ 0.106080 : 3 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 98.6s 0.6s
+*0.148560 : 3 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 135.9s 0.6s
+completed pass 3 at alpha 0.022600
+*0.162160 : 4 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 265.8s 0.6s
+*0.105240 : 4 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.7s 1.0s
+*0.144160 : 4 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.8s 0.6s
+completed pass 4 at alpha 0.021400
+*0.160640 : 5 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 261.2s 0.6s
+*0.174800 : 5 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)_inferred 261.2s 6.0s
+*0.104760 : 5 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.3s 0.6s
+*0.107600 : 5 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)_inferred 96.3s 2.7s
+*0.139680 : 5 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.9s 0.6s
+*0.193600 : 5 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)_inferred 134.9s 3.8s
+completed pass 5 at alpha 0.020200
+*0.159160 : 6 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 259.9s 0.6s
+ 0.108240 : 6 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 97.0s 0.6s
+*0.138680 : 6 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.3s 0.6s
+completed pass 6 at alpha 0.019000
+*0.156560 : 7 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 258.7s 0.5s
+ 0.106040 : 7 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.4s 0.6s
+*0.137520 : 7 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.8s 1.0s
+completed pass 7 at alpha 0.017800
+*0.154000 : 8 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 257.0s 0.6s
+ 0.107080 : 8 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.4s 0.6s
+*0.134800 : 8 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.9s 0.6s
+completed pass 8 at alpha 0.016600
+ 0.154880 : 9 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 256.8s 0.5s
+ 0.107760 : 9 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 97.5s 0.6s
+*0.133760 : 9 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.3s 1.0s
+completed pass 9 at alpha 0.015400
+*0.152640 : 10 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 255.8s 0.6s
+*0.174000 : 10 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)_inferred 255.8s 6.0s
+ 0.106920 : 10 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.7s 0.6s
+*0.104000 : 10 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)_inferred 96.7s 2.6s
+*0.133320 : 10 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.5s 0.6s
+ 0.194800 : 10 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)_inferred 134.5s 3.8s
+completed pass 10 at alpha 0.014200
+ 0.153480 : 11 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 255.1s 0.6s
+ 0.108480 : 11 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.7s 0.6s
+*0.132840 : 11 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.6s 0.6s
+completed pass 11 at alpha 0.013000
+*0.152120 : 12 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 255.0s 0.6s
+ 0.106880 : 12 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.7s 0.6s
+*0.131920 : 12 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.5s 1.0s
+completed pass 12 at alpha 0.011800
+ 0.154680 : 13 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 254.9s 0.6s
+ 0.106680 : 13 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.3s 0.6s
+*0.131560 : 13 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.0s 0.6s
+completed pass 13 at alpha 0.010600
+ 0.153440 : 14 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 253.2s 0.6s
+ 0.107320 : 14 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.3s 0.6s
+*0.131240 : 14 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.2s 1.0s
+completed pass 14 at alpha 0.009400
+ 0.154040 : 15 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 252.5s 0.6s
+*0.173200 : 15 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)_inferred 252.5s 5.8s
+ 0.105680 : 15 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 95.7s 0.6s
+ 0.108000 : 15 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)_inferred 95.7s 2.7s
+*0.130840 : 15 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.2s 0.6s
+*0.185200 : 15 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)_inferred 134.2s 3.8s
+completed pass 15 at alpha 0.008200
+ 0.152720 : 16 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 252.7s 0.6s
+ 0.105240 : 16 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.3s 0.6s
+*0.130320 : 16 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 134.3s 0.5s
+completed pass 16 at alpha 0.007000
+ 0.153880 : 17 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 252.3s 0.6s
+ 0.105200 : 17 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 96.6s 0.5s
+ 0.130360 : 17 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 133.9s 1.0s
+completed pass 17 at alpha 0.005800
+ 0.154320 : 18 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 251.7s 0.6s
+ 0.105680 : 18 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 95.9s 0.6s
+ 0.130600 : 18 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 133.2s 0.6s
+completed pass 18 at alpha 0.004600
+ 0.154960 : 19 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 251.4s 0.6s
+ 0.106240 : 19 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 95.7s 0.6s
+ 0.130680 : 19 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 133.0s 0.6s
+completed pass 19 at alpha 0.003400
+ 0.154440 : 20 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2) 250.6s 0.9s
+*0.172400 : 20 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)_inferred 250.6s 5.9s
+ 0.105640 : 20 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2) 95.9s 0.6s
+ 0.107200 : 20 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)_inferred 95.9s 2.7s
+ 0.130760 : 20 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2) 133.9s 0.5s
+ 0.219200 : 20 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)_inferred 133.9s 3.4s
+completed pass 20 at alpha 0.002200
+END 2017-05-12 09:46:06.914201
+0.104000 Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)_inferred
+0.104760 Doc2Vec(dbow,d100,n5,mc2,s0.001,t2)
+0.130320 Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)
+0.152120 Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)
+0.172400 Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t2)_inferred
+0.185200 Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t2)_inferred
