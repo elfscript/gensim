@@ -94,3 +94,15 @@ for model in models:
    print(model.most_similar(word, topn=20))
 
 print("END %s" % str(datetime.datetime.now()))
+
+# assuming something like
+# https://word2vec.googlecode.com/svn/trunk/questions-words.txt 
+# is in local directory
+# note: this takes many minutes
+for model in models:
+    sections = model.accuracy('../../questions-words.txt')
+    correct, incorrect = len(sections[-1]['correct']), len(sections[-1]['incorrect'])
+    print('%s: %0.2f%% correct (%d of %d)' % (model, float(correct*100)/(correct+incorrect), correct, correct+incorrect))
+
+print("END %s" % str(datetime.datetime.now()))
+
