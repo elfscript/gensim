@@ -116,7 +116,7 @@ best_error = defaultdict(lambda :1.0)  # to selectively-print only best errors a
 from random import shuffle
 import datetime
 
-alpha, min_alpha, passes = (0.025, 0.001, 2)
+alpha, min_alpha, passes = (0.025, 0.001, 20)
 alpha_delta = (alpha - min_alpha) / passes
 
 print("START %s" % datetime.datetime.now())
@@ -159,6 +159,16 @@ for epoch in range(passes):
     
 print("END %s" % str(datetime.datetime.now()))
 
+#========== save models
+try:
+ for name, train_model in models_by_name.items():
+     fname=name.replace('/', '-')
+     fname += ".model"    
+     train_model.save(fname)
+except Exception as e:
+ print(repr(e))
+
+ 
 #====================
 for rate, name in sorted((rate, name) for name, rate in best_error.items()):
     print("%f %s" % (rate, name))
