@@ -1,0 +1,326 @@
+root@88e083d6a15e:/mnt/work# [Kroot@88e083d6a15e:/mnt/work# cd docs
+root@88e083d6a15e:/mnt/work/docs# cd note*
+root@88e083d6a15e:/mnt/work/docs/notebooks# ls
+20passes.txt			    doc2vec-imdb2.py
+Corpora_and_Vector_Spaces.ipynb     doc2vec-imdb3.py
+Dynamic Topic Model.png		    doc2vec-imdb4.py
+FastText_Tutorial.ipynb		    doc2vec-imdb5.py
+Monkey Brains New.png		    doc2vec-lee.ipynb
+Monkey Brains.png		    doc2vec-wikipedia.ipynb
+Similarity_Queries.ipynb	    dtm_example.ipynb
+Tensorboard.png			    gensim Quick Start.ipynb
+Tensorboard_doc2vec.ipynb	    gensim_news_classification.ipynb
+Topics_and_Transformations.ipynb    index
+Varembed.ipynb			    index.d
+WMD_tutorial.ipynb		    lda_training_tips.ipynb
+Word2Vec_FastText_Comparison.ipynb  ldaseqmodel.ipynb
+WordRank_wrapper_quickstart.ipynb   online_w2v_tutorial.ipynb
+Wordrank_comparisons.ipynb	    pca.png
+aclImdb				    sklearn_wrapper.ipynb
+aclImdb_v1.tar.gz		    summarization_tutorial.ipynb
+annoytutorial.ipynb		    test_notebooks.py
+atmodel_tutorial.ipynb		    tmp1.txt
+datasets			    topic_coherence-movies.ipynb
+deepir.ipynb			    topic_coherence_tutorial.ipynb
+distance_metrics.ipynb		    topic_methods.ipynb
+distributed.md			    tsne.png
+doc2vec-IMDB.ipynb		    word2vec.ipynb
+doc2vec-imdb.py
+root@88e083d6a15e:/mnt/work/docs/notebooks# python doc2vec-imdb2.py[1P[1P[1P[1P[1P[1P doc2vec-imdb2.pyc doc2vec-imdb2.pya doc2vec-imdb2.py
+bash: ca: command not found
+root@88e083d6a15e:/mnt/work/docs/notebooks# ca doc2vec-imdb2.py[C[Ct doc2vec-imdb2.py
+import os.path
+assert os.path.isfile("aclImdb/alldata-id.txt"), "alldata-id.txt unavailable"
+#The data is small enough to be read into memory.
+
+import gensim
+from gensim.models.doc2vec import TaggedDocument
+from collections import namedtuple
+import io
+
+SentimentDocument = namedtuple('SentimentDocument', 'words tags split sentiment')
+
+alldocs = []  # will hold all docs in original order
+with io.open('aclImdb/alldata-id.txt','r', encoding='utf-8') as alldata:
+    for line_no, line in enumerate(alldata):
+        tokens = gensim.utils.to_unicode(line).split()
+        words = tokens[1:]
+        tags = [line_no] # `tags = [tokens[0]]` would also work at extra memory cost
+        split = ['train','test','extra','extra'][line_no//25000]  # 25k train, 25k test, 25k extra
+        sentiment = [1.0, 0.0, 1.0, 0.0, None, None, None, None][line_no//12500] # [12.5K pos, 12.5K neg]*2 then unknown
+        alldocs.append(SentimentDocument(words, tags, split, sentiment))
+
+train_docs = [doc for doc in alldocs if doc.split == 'train']
+test_docs = [doc for doc in alldocs if doc.split == 'test']
+doc_list = alldocs[:]  # for reshuffling per pass
+
+print('%d docs: %d train-sentiment, %d test-sentiment' % (len(doc_list), len(train_docs), len(test_docs)))
+#100000 docs: 25000 train-sentiment, 25000 test-sentiment
+
+
+#==============
+# ./word2vec -train ../alldata-id.txt -output vectors.txt -cbow 0 -size 100 -window 10 -negative 5 -hs 0 -sample 1e-4 -threads 40 -binary 0 -iter 20 -min-count 1 -sentence-vectors 1
+
+#a min_count=2 saves quite a bit of model memory, discarding only words that appear in a single doc
+
+from gensim.models import Doc2Vec
+import gensim.models.doc2vec
+from collections import OrderedDict
+import multiprocessing
+
+cores = multiprocessing.cpu_count()
+print("number of cores", cores)
+assert gensim.models.doc2vec.FAST_VERSION > -1, "this will be painfully slow otherwise"
+
+simple_models = [
+    # PV-DM w/concatenation - window=5 (both sides) approximates paper's 10-word total window size
+    Doc2Vec(dm=1, dm_concat=1, size=100, window=5, negative=5, hs=0, min_count=2, workers=cores),
+    # PV-DBOW 
+    Doc2Vec(dm=0, size=100, negative=5, hs=0, min_count=2, workers=cores),
+    # PV-DM w/average
+    Doc2Vec(dm=1, dm_mean=1, size=100, window=10, negative=5, hs=0, min_count=2, workers=cores),
+]
+
+# speed setup by sharing results of 1st model's vocabulary scan
+simple_models[0].build_vocab(alldocs)  # PV-DM/concat requires one special NULL word so it serves as template
+print(simple_models[0])
+for model in simple_models[1:]:
+    model.reset_from(simple_models[0])
+    print(model)
+
+models_by_name = OrderedDict((str(model), model) for model in simple_models)
+
+#======== Helper methods for evaluating error rate.
+import numpy as np
+import statsmodels.api as sm
+from random import sample
+
+# for timing
+from contextlib import contextmanager
+from timeit import default_timer
+import time 
+
+@contextmanager
+def elapsed_timer():
+    start = default_timer()
+    elapser = lambda: default_timer() - start
+    yield lambda: elapser()
+    end = default_timer()
+    elapser = lambda: end-start
+    
+def logistic_predictor_from_data(train_targets, train_regressors):
+    logit = sm.Logit(train_targets, train_regressors)
+    predictor = logit.fit(disp=0)
+    #print(predictor.summary())
+    return predictor
+
+def error_rate_for_model(test_model, train_set, test_set, infer=False, infer_steps=3, infer_alpha=0.1, infer_subsample=0.1):
+    """Report error rate on test_doc sentiments, using supplied model and train_docs"""
+
+    train_targets, train_regressors = zip(*[(doc.sentiment, test_model.docvecs[doc.tags[0]]) for doc in train_set])
+    train_regressors = sm.add_constant(train_regressors)
+    predictor = logistic_predictor_from_data(train_targets, train_regressors)
+
+    test_data = test_set
+    if infer:
+        if infer_subsample < 1.0:
+            test_data = sample(test_data, int(infer_subsample * len(test_data)))
+        test_regressors = [test_model.infer_vector(doc.words, steps=infer_steps, alpha=infer_alpha) for doc in test_data]
+    else:
+        test_regressors = [test_model.docvecs[doc.tags[0]] for doc in test_docs]
+    test_regressors = sm.add_constant(test_regressors)
+    
+    # predict & evaluate
+    test_predictions = predictor.predict(test_regressors)
+    corrects = sum(np.rint(test_predictions) == [doc.sentiment for doc in test_data])
+    errors = len(test_predictions) - corrects
+    error_rate = float(errors) / len(test_predictions)
+    return (error_rate, errors, len(test_predictions), predictor)
+
+
+#======== Bulk training ==========
+#(On a 4-core 2.6Ghz Intel Core i7, these 20 passes training and evaluating 3 main models takes about an hour.)
+
+from collections import defaultdict
+best_error = defaultdict(lambda :1.0)  # to selectively-print only best errors achieved
+
+from random import shuffle
+import datetime
+
+alpha, min_alpha, passes = (0.025, 0.001, 20)
+alpha_delta = (alpha - min_alpha) / passes
+
+print("START %s" % datetime.datetime.now())
+
+for epoch in range(passes):
+    shuffle(doc_list)  # shuffling gets best results
+    
+    for name, train_model in models_by_name.items():
+        # train
+        duration = 'na'
+        train_model.alpha, train_model.min_alpha = alpha, alpha
+        with elapsed_timer() as elapsed:
+            train_model.train(doc_list, total_examples=train_model.corpus_count, epochs=train_model.iter)
+            duration = '%.1f' % elapsed()
+            
+        # evaluate
+        eval_duration = ''
+        with elapsed_timer() as eval_elapsed:
+            err, err_count, test_count, predictor = error_rate_for_model(train_model, train_docs, test_docs)
+        eval_duration = '%.1f' % eval_elapsed()
+        best_indicator = ' '
+        if err <= best_error[name]:
+            best_error[name] = err
+            best_indicator = '*' 
+        print("%s%f : %i passes : %s %ss %ss" % (best_indicator, err, epoch + 1, name, duration, eval_duration))
+
+        if ((epoch + 1) % 5) == 0 or epoch == 0:
+            eval_duration = ''
+            with elapsed_timer() as eval_elapsed:
+                infer_err, err_count, test_count, predictor = error_rate_for_model(train_model, train_docs, test_docs, infer=True)
+            eval_duration = '%.1f' % eval_elapsed()
+            best_indicator = ' '
+            if infer_err < best_error[name + '_inferred']:
+                best_error[name + '_inferred'] = infer_err
+                best_indicator = '*'
+            print("%s%f : %i passes : %s %ss %ss" % (best_indicator, infer_err, epoch + 1, name + '_inferred', duration, eval_duration))
+
+    print('completed pass %i at alpha %f' % (epoch + 1, alpha))
+    alpha -= alpha_delta
+    
+print("END %s" % str(datetime.datetime.now()))
+
+#========== save models
+try:
+ for name, train_model in models_by_name.items():
+     fname=name.replace('/', '-')
+     fname += ".model"    
+     train_model.save(fname)
+except Exception as e:
+ print(repr(e))
+
+ 
+#====================
+for rate, name in sorted((rate, name) for name, rate in best_error.items()):
+    print("%f %s" % (rate, name))
+
+
+
+#=======
+#evaluate models in pairs. These wrappers return the concatenation of the vectors from each model. (Only the singular models are trained.)
+from gensim.test.test_doc2vec import ConcatenatedDoc2Vec
+models_by_name['dbow+dmm'] = ConcatenatedDoc2Vec([simple_models[1], simple_models[2]])
+models_by_name['dbow+dmc'] = ConcatenatedDoc2Vec([simple_models[1], simple_models[0]])
+
+
+root@88e083d6a15e:/mnt/work/docs/notebooks# ~cat doc2vec-imdb2.py[1P[1P[1P doc2vec-imdb2.pyp doc2vec-imdb2.pyy doc2vec-imdb2.pyt doc2vec-imdb2.pyh doc2vec-imdb2.pyo doc2vec-imdb2.pyn doc2vec-imdb2.py
+100000 docs: 25000 train-sentiment, 25000 test-sentiment
+('number of cores', 6)
+Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)
+Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)
+Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)
+/usr/local/lib/python2.7/site-packages/statsmodels/compat/pandas.py:56: FutureWarning: The pandas.core.datetools module is deprecated and will be removed in a future version. Please use the pandas.tseries module instead.
+  from pandas.core import datetools
+START 2017-05-13 08:37:27.528306
+*0.247680 : 1 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 118.3s 0.4s
+*0.224800 : 1 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)_inferred 118.3s 6.7s
+*0.112160 : 1 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 87.1s 0.4s
+*0.118800 : 1 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)_inferred 87.1s 2.4s
+*0.177400 : 1 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 105.4s 0.4s
+*0.209200 : 1 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)_inferred 105.4s 3.0s
+completed pass 1 at alpha 0.025000
+*0.185120 : 2 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 113.7s 0.4s
+*0.105800 : 2 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 85.5s 0.9s
+*0.156240 : 2 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 106.7s 0.4s
+completed pass 2 at alpha 0.023800
+*0.168240 : 3 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 111.9s 0.4s
+ 0.106240 : 3 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 83.6s 0.4s
+*0.149960 : 3 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 101.5s 0.5s
+completed pass 3 at alpha 0.022600
+*0.162480 : 4 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 107.2s 0.4s
+ 0.107200 : 4 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 80.8s 0.8s
+*0.145600 : 4 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 100.5s 0.4s
+completed pass 4 at alpha 0.021400
+*0.158960 : 5 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 106.7s 0.4s
+*0.184800 : 5 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)_inferred 106.7s 5.8s
+ 0.106440 : 5 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 81.4s 0.4s
+*0.105600 : 5 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)_inferred 81.4s 2.4s
+*0.141360 : 5 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 101.2s 0.4s
+*0.196800 : 5 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)_inferred 101.2s 3.4s
+completed pass 5 at alpha 0.020200
+*0.156600 : 6 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 105.4s 0.4s
+*0.105640 : 6 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 81.2s 0.4s
+*0.138000 : 6 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 100.2s 0.4s
+completed pass 6 at alpha 0.019000
+*0.154400 : 7 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 104.1s 0.4s
+ 0.106880 : 7 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.9s 0.5s
+*0.135200 : 7 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 99.0s 0.9s
+completed pass 7 at alpha 0.017800
+ 0.156680 : 8 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.4s 0.4s
+ 0.106640 : 8 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 78.9s 0.4s
+*0.134360 : 8 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.8s 0.4s
+completed pass 8 at alpha 0.016600
+ 0.155240 : 9 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.8s 0.4s
+ 0.106280 : 9 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.4s 0.4s
+*0.133240 : 9 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.9s 0.8s
+completed pass 9 at alpha 0.015400
+*0.153400 : 10 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.4s 0.4s
+*0.162800 : 10 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)_inferred 103.4s 5.6s
+ 0.106680 : 10 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.7s 0.4s
+ 0.108800 : 10 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)_inferred 79.7s 2.3s
+*0.132720 : 10 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 99.8s 0.4s
+*0.184000 : 10 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)_inferred 99.8s 3.5s
+completed pass 10 at alpha 0.014200
+*0.153080 : 11 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.5s 0.4s
+ 0.107640 : 11 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.6s 0.4s
+*0.131600 : 11 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 99.0s 0.4s
+completed pass 11 at alpha 0.013000
+ 0.153800 : 12 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.4s 0.4s
+ 0.106880 : 12 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.3s 0.4s
+*0.131280 : 12 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 99.4s 0.8s
+completed pass 12 at alpha 0.011800
+ 0.154080 : 13 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.2s 0.4s
+ 0.106680 : 13 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.9s 0.5s
+*0.131000 : 13 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 99.3s 0.4s
+completed pass 13 at alpha 0.010600
+ 0.153720 : 14 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 102.9s 0.4s
+ 0.107400 : 14 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.0s 0.4s
+*0.130600 : 14 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.8s 0.8s
+completed pass 14 at alpha 0.009400
+*0.153080 : 15 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 102.5s 0.4s
+ 0.185600 : 15 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)_inferred 102.5s 5.7s
+ 0.107240 : 15 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.2s 0.4s
+ 0.112800 : 15 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)_inferred 79.2s 2.4s
+*0.130440 : 15 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.8s 0.5s
+ 0.207200 : 15 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)_inferred 98.8s 3.3s
+completed pass 15 at alpha 0.008200
+*0.152600 : 16 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 103.1s 0.4s
+ 0.106200 : 16 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.8s 0.4s
+*0.129800 : 16 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.8s 0.4s
+completed pass 16 at alpha 0.007000
+ 0.152840 : 17 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 102.6s 0.4s
+ 0.107520 : 17 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.8s 0.4s
+*0.129720 : 17 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.4s 0.8s
+completed pass 17 at alpha 0.005800
+ 0.154800 : 18 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 102.8s 0.5s
+ 0.107640 : 18 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.0s 0.4s
+ 0.129840 : 18 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 99.5s 0.4s
+completed pass 18 at alpha 0.004600
+ 0.153760 : 19 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 102.7s 0.4s
+ 0.106960 : 19 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 79.5s 0.4s
+*0.129240 : 19 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 100.3s 0.4s
+completed pass 19 at alpha 0.003400
+ 0.154640 : 20 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6) 102.6s 0.9s
+ 0.165200 : 20 passes : Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)_inferred 102.6s 5.5s
+ 0.107880 : 20 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6) 78.4s 0.4s
+ 0.107200 : 20 passes : Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)_inferred 78.4s 2.3s
+*0.128880 : 20 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6) 98.6s 0.4s
+ 0.213200 : 20 passes : Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)_inferred 98.6s 3.1s
+completed pass 20 at alpha 0.002200
+END 2017-05-13 10:14:15.320299
+0.105600 Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)_inferred
+0.105640 Doc2Vec(dbow,d100,n5,mc2,s0.001,t6)
+0.128880 Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)
+0.152600 Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)
+0.162800 Doc2Vec(dm/c,d100,n5,w5,mc2,s0.001,t6)_inferred
+0.184000 Doc2Vec(dm/m,d100,n5,w10,mc2,s0.001,t6)_inferred

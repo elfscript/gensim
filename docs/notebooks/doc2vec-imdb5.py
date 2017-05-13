@@ -36,9 +36,9 @@ print("number of cores", cores)
 assert gensim.models.doc2vec.FAST_VERSION > -1, "this will be painfully slow otherwise"
 
 model_names = [
-"Doc2Vec(dbow,d100,n5,mc2,s0.001,t2).model",
-"Doc2Vec(dm-c,d100,n5,w5,mc2,s0.001,t2).model",
-"Doc2Vec(dm-m,d100,n5,w10,mc2,s0.001,t2).model"
+"Doc2Vec(dbow,d100,n5,mc2,s0.001,t%d).model" %cores,
+"Doc2Vec(dm-c,d100,n5,w5,mc2,s0.001,t%d).model" %cores,
+"Doc2Vec(dm-m,d100,n5,w10,mc2,s0.001,t%d).model" %cores
 ]
 
 # speed setup by sharing results of 1st model's vocabulary scan
